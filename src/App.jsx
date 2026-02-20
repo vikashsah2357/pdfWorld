@@ -153,20 +153,20 @@ export default function App() {
     </div>
   );
 
-  const UploadBox = ({ onFiles, multiple=false }) => {
+  const UploadBox = ({ onFiles, multiple = false }) => {
     const [drag, setDrag] = useState(false);
     return (
       <div
-        onDragOver={(e)=>{e.preventDefault();setDrag(true);}}
-        onDragLeave={()=>setDrag(false)}
-        onDrop={(e)=>{e.preventDefault();setDrag(false); onFiles(e.dataTransfer.files);}}
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); onFiles(e.dataTransfer.files); }}
         style={{
           border: `2px dashed ${theme.border}`,
           borderRadius: 12,
           padding: 28,
           textAlign: "center",
           margin: "0 auto 16px",
-          background: drag ? "rgba(37,99,235,0.08)" : (dark?"#020617":"#f8fafc"),
+          background: drag ? "rgba(37,99,235,0.08)" : (dark ? "#020617" : "#f8fafc"),
           width: "100%",
           maxWidth: 440,
           color: theme.sub
@@ -174,7 +174,7 @@ export default function App() {
       >
         <div style={{ marginBottom: 8 }}>Drag & Drop PDF here</div>
         <input type="file" accept="application/pdf" multiple={multiple}
-          onChange={(e)=>onFiles(e.target.files)} />
+          onChange={(e) => onFiles(e.target.files)} />
       </div>
     );
   };
@@ -184,8 +184,8 @@ export default function App() {
     return (
       <button
         onClick={onClick}
-        onMouseEnter={()=>setHover(true)}
-        onMouseLeave={()=>setHover(false)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         style={{
           padding: "12px 26px",
           background: "linear-gradient(135deg, #2563eb, #7c3aed)",
@@ -227,30 +227,30 @@ export default function App() {
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#2563eb,#7c3aed)" }} />
         pdfWorld
       </div>
-      <button onClick={()=>setDark(!dark)} style={{
+      <button onClick={() => setDark(!dark)} style={{
         padding: "8px 14px",
         borderRadius: 9999,
         border: `1px solid ${theme.border}`,
         background: "transparent",
         color: theme.text,
         cursor: "pointer"
-      }}>{dark?"Light":"Dark"} Mode</button>
+      }}>{dark ? "Light" : "Dark"} Mode</button>
     </div>
   );
 
   return (
-    <div style={{ 
-      background: theme.bg, 
-      minHeight: "100vh", 
+    <div style={{
+      background: theme.bg,
+      minHeight: "100vh",
       paddingTop: 88,
       display: "flex",
       justifyContent: "center",
       alignItems: "center"
     }}>
       <Navbar />
-      <div style={{ 
-        maxWidth: 900, 
-        width: "100%", 
+      <div style={{
+        maxWidth: 900,
+        width: "100%",
         padding: 24,
         display: "flex",
         flexDirection: "column",
@@ -261,42 +261,42 @@ export default function App() {
         <p style={{ textAlign: "center", color: theme.sub }}>Merge, Split, Rotate & Watermark</p>
 
         <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-          <TabButton id="merge" label="Merge" icon={<Icon path="M7 7h10v10H7z"/>} />
-          <TabButton id="split" label="Split" icon={<Icon path="M4 4h7v7H4zM13 13h7v7h-7z"/>} />
-          <TabButton id="rotate" label="Rotate" icon={<Icon path="M12 4v4l3-3-3-1zM6 20a8 8 0 1112-6"/>} />
-          <TabButton id="watermark" label="Watermark" icon={<Icon path="M12 2l4 8-4 2-4-2z"/>} />
-          <TabButton id="remove" label="Remove Pages" icon={<Icon path="M6 7h12M9 7v10m6-10v10"/>} />
+          <TabButton id="merge" label="Merge" icon={<Icon path="M7 7h10v10H7z" />} />
+          <TabButton id="split" label="Split" icon={<Icon path="M4 4h7v7H4zM13 13h7v7h-7z" />} />
+          <TabButton id="rotate" label="Rotate" icon={<Icon path="M12 4v4l3-3-3-1zM6 20a8 8 0 1112-6" />} />
+          <TabButton id="watermark" label="Watermark" icon={<Icon path="M12 2l4 8-4 2-4-2z" />} />
+          <TabButton id="remove" label="Remove Pages" icon={<Icon path="M6 7h12M9 7v10m6-10v10" />} />
         </div>
 
         {activeTab === "merge" && (
           <Card>
-            <UploadBox multiple onFiles={(f)=>setFiles([...f])} />
+            <UploadBox multiple onFiles={(f) => setFiles([...f])} />
             <PrimaryButton onClick={handleMerge} label="Merge & Download" />
           </Card>
         )}
 
         {activeTab === "split" && (
           <Card>
-            <UploadBox onFiles={(f)=>setSplitFile(f[0])} />
+            <UploadBox onFiles={(f) => setSplitFile(f[0])} />
             <PrimaryButton onClick={handleSplit} label="Split & Download" />
           </Card>
         )}
 
         {activeTab === "rotate" && (
           <Card>
-            <UploadBox onFiles={(f)=>setRotateFile(f[0])} />
+            <UploadBox onFiles={(f) => setRotateFile(f[0])} />
             <PrimaryButton onClick={handleRotate} label="Rotate 90° & Download" />
           </Card>
         )}
 
         {activeTab === "watermark" && (
           <Card>
-            <UploadBox onFiles={(f)=>setWatermarkFile(f[0])} />
+            <UploadBox onFiles={(f) => setWatermarkFile(f[0])} />
             <input
               type="text"
               placeholder="Enter watermark text"
-              onChange={(e)=>setWatermarkText(e.target.value)}
-              style={{ padding: 12, borderRadius: 10, width: "100%", maxWidth: 440, margin: "0 auto 16px", border: `1px solid ${theme.border}`, display: "block", background: dark?"#020617":"#fff", color: theme.text }}
+              onChange={(e) => setWatermarkText(e.target.value)}
+              style={{ padding: 12, borderRadius: 10, width: "100%", maxWidth: 440, margin: "0 auto 16px", border: `1px solid ${theme.border}`, display: "block", background: dark ? "#020617" : "#fff", color: theme.text }}
             />
             <PrimaryButton onClick={handleWatermark} label="Add Watermark" />
           </Card>
@@ -304,12 +304,12 @@ export default function App() {
 
         {activeTab === "remove" && (
           <Card>
-            <UploadBox onFiles={(f)=>setRemoveFile(f[0])} />
+            <UploadBox onFiles={(f) => setRemoveFile(f[0])} />
             <input
               type="text"
               placeholder="Pages to remove (e.g. 1,3)"
-              onChange={(e)=>setRemovePages(e.target.value)}
-              style={{ padding: 12, borderRadius: 10, width: "100%", maxWidth: 440, margin: "0 auto 16px", border: `1px solid ${theme.border}`, display: "block", background: dark?"#020617":"#fff", color: theme.text }}
+              onChange={(e) => setRemovePages(e.target.value)}
+              style={{ padding: 12, borderRadius: 10, width: "100%", maxWidth: 440, margin: "0 auto 16px", border: `1px solid ${theme.border}`, display: "block", background: dark ? "#020617" : "#fff", color: theme.text }}
             />
             <PrimaryButton onClick={handleRemovePages} label="Remove & Download" />
           </Card>
