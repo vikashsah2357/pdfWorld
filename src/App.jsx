@@ -225,7 +225,7 @@ export default function App() {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, color: theme.text, fontWeight: 800 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#2563eb,#7c3aed)" }} />
-        Vikash PDF Toolkit
+        pdfWorld
       </div>
       <button onClick={()=>setDark(!dark)} style={{
         padding: "8px 14px",
@@ -239,10 +239,25 @@ export default function App() {
   );
 
   return (
-    <div style={{ background: theme.bg, minHeight: "100vh", paddingTop: 88 }}>
+    <div style={{ 
+      background: theme.bg, 
+      minHeight: "100vh", 
+      paddingTop: 88,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center"
+    }}>
       <Navbar />
-      <div style={{ maxWidth: 980, margin: "0 auto", width: "100%", padding: 24 }}>
-        <h1 style={{ textAlign: "center", marginBottom: 6, color: theme.text }}>Edit PDFs Online</h1>
+      <div style={{ 
+        maxWidth: 900, 
+        width: "100%", 
+        padding: 24,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <h1 style={{ textAlign: "center", marginBottom: 6, color: theme.text }}>pdfWorld</h1>
         <p style={{ textAlign: "center", color: theme.sub }}>Merge, Split, Rotate & Watermark</p>
 
         <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
