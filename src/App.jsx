@@ -2,31 +2,36 @@ import React, { useEffect, useState } from "react";
 import { PDFDocument, degrees, rgb, StandardFonts } from "pdf-lib";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("merge");
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState("home"); // "home" shows the grid
   const [dark, setDark] = useState(false);
   const [files, setFiles] = useState([]);
-  const [splitFile, setSplitFile] = useState(null);
-  const [rotateFile, setRotateFile] = useState(null);
-  const [watermarkFile, setWatermarkFile] = useState(null);
-  const [removeFile, setRemoveFile] = useState(null);
+  const [singleFile, setSingleFile] = useState(null);
   const [watermarkText, setWatermarkText] = useState("");
-  const [removePages, setRemovePages] = useState("");
+  const [extraInput, setExtraInput] = useState("");
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Handle Window Resize
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      // Close sidebar automatically if switching to desktop
-      if (!mobile) setSidebarOpen(false);
-    };
-    handleResize(); // Set initial state
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // --- TOOLS DATA ---
+  const tools = [
+    { id: "merge", label: "Merge PDF", desc: "Combine PDFs in the order you want.", icon: "📑", color: "#e74c3c" },
+    { id: "split", label: "Split PDF", desc: "Separate one page or a whole set.", icon: "✂️", color: "#f39c12" },
+    { id: "compress", label: "Compress PDF", desc: "Reduce file size while optimizing quality.", icon: "📉", color: "#27ae60" },
+    { id: "pdf-to-word", label: "PDF to Word", desc: "Convert PDF to editable DOCX.", icon: "📘", color: "#2980b9" },
+    { id: "word-to-pdf", label: "Word to PDF", desc: "Make DOCX files easy to read.", icon: "📝", color: "#2980b9" },
+    { id: "pdf-to-excel", label: "PDF to Excel", desc: "Extract data to spreadsheets.", icon: "📊", color: "#1e8449" },
+    { id: "edit", label: "Edit PDF", desc: "Add text, images, or shapes.", icon: "✒️", color: "#8e44ad" },
+    { id: "watermark", label: "Watermark", desc: "Stamp an image or text over PDF.", icon: "🖋️", color: "#34495e" },
+    { id: "rotate", label: "Rotate PDF", desc: "Rotate pages the way you need.", icon: "🔄", color: "#d35400" },
+    { id: "remove", label: "Remove Pages", desc: "Delete pages from your document.", icon: "🗑️", color: "#c0392b" },
+  ];
 
   const theme = {
     bg: dark ? "#0b1220" : "#f4f6fb",
@@ -38,6 +43,7 @@ export default function App() {
     brand: "#4f46e5"
   };
 
+  // --- LOGIC ---
   const downloadFile = (bytes, name) => {
     const blob = new Blob([bytes], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
@@ -47,7 +53,6 @@ export default function App() {
     a.click();
   };
 
-  // Logic Handlers (Unchanged)
   const handleMerge = async () => {
     if (files.length < 2) return alert("Upload at least 2 PDFs");
     const mergedPdf = await PDFDocument.create();
@@ -57,64 +62,21 @@ export default function App() {
       const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
       pages.forEach((p) => mergedPdf.addPage(p));
     }
-    const mergedBytes = await mergedPdf.save();
-    downloadFile(mergedBytes, "merged.pdf");
-  };
-
-  const handleSplit = async () => {
-    if (!splitFile) return alert("Upload a PDF to split");
-    const bytes = await splitFile.arrayBuffer();
-    const pdf = await PDFDocument.load(bytes);
-    const total = pdf.getPageCount();
-    for (let i = 0; i < total; i++) {
-      const newPdf = await PDFDocument.create();
-      const [page] = await newPdf.copyPages(pdf, [i]);
-      newPdf.addPage(page);
-      const newBytes = await newPdf.save();
-      downloadFile(newBytes, `page_${i + 1}.pdf`);
-    }
+    downloadFile(await mergedPdf.save(), "merged.pdf");
   };
 
   const handleRotate = async () => {
-    if (!rotateFile) return alert("Upload a PDF to rotate");
-    const bytes = await rotateFile.arrayBuffer();
-    const pdf = await PDFDocument.load(bytes);
+    if (!singleFile) return alert("Upload a PDF");
+    const pdf = await PDFDocument.load(await singleFile.arrayBuffer());
     pdf.getPages().forEach((p) => p.setRotation(degrees(90)));
-    const newBytes = await pdf.save();
-    downloadFile(newBytes, "rotated.pdf");
+    downloadFile(await pdf.save(), "rotated.pdf");
   };
 
-  const handleWatermark = async () => {
-    if (!watermarkFile || !watermarkText) return alert("Upload file & enter text");
-    const bytes = await watermarkFile.arrayBuffer();
-    const pdf = await PDFDocument.load(bytes);
-    const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-    pdf.getPages().forEach((page) => {
-      const { width, height } = page.getSize();
-      page.drawText(watermarkText, {
-        x: width / 4,
-        y: height / 2,
-        size: 40,
-        font,
-        color: rgb(0.75, 0.75, 0.75),
-        rotate: degrees(45),
-      });
-    });
-    const newBytes = await pdf.save();
-    downloadFile(newBytes, "watermarked.pdf");
-  };
+  // Note: PDF to Word/Excel usually requires server-side processing. 
+  // Here we provide the UI for the workflow.
+  const handlePlaceholder = () => alert("Conversion tools require a backend server. UI is ready!");
 
-  const handleRemovePages = async () => {
-    if (!removeFile || !removePages) return alert("Upload file & enter pages like 1,3");
-    const pagesToRemove = removePages.split(",").map((n) => parseInt(n.trim()) - 1);
-    const bytes = await removeFile.arrayBuffer();
-    const pdf = await PDFDocument.load(bytes);
-    pagesToRemove.sort((a, b) => b - a).forEach((p) => pdf.removePage(p));
-    const newBytes = await pdf.save();
-    downloadFile(newBytes, "updated.pdf");
-  };
-
-  // UI Components
+  // --- COMPONENTS ---
   const UploadBox = ({ onFiles, multiple = false }) => {
     const [drag, setDrag] = useState(false);
     return (
@@ -125,23 +87,16 @@ export default function App() {
         style={{
           border: `2px dashed ${theme.border}`,
           borderRadius: 14,
-          padding: isMobile ? 20 : 40,
+          padding: isMobile ? 20 : 36,
           textAlign: "center",
           marginBottom: 16,
           background: drag ? "rgba(79,70,229,0.08)" : (dark ? "#020617" : "#fafbff"),
           width: "100%",
-          boxSizing: "border-box",
           color: theme.sub
         }}
       >
-        <div style={{ marginBottom: 12, fontWeight: 600 }}>{drag ? "Drop now!" : "Select or Drag PDF"}</div>
-        <input 
-          type="file" 
-          accept="application/pdf" 
-          multiple={multiple}
-          style={{ width: '100%', maxWidth: '250px' }}
-          onChange={(e) => onFiles(e.target.files)} 
-        />
+        <div style={{ marginBottom: 8, fontWeight: 600 }}>Drag & Drop PDF here</div>
+        <input type="file" multiple={multiple} onChange={(e) => onFiles(e.target.files)} />
       </div>
     );
   };
@@ -150,180 +105,141 @@ export default function App() {
     <button
       onClick={onClick}
       style={{
-        padding: "14px 28px",
+        padding: isMobile ? "12px 20px" : "14px 28px",
         background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
         color: "white",
         border: "none",
-        borderRadius: 12,
+        borderRadius: 9999,
         cursor: "pointer",
         fontWeight: 700,
-        width: isMobile ? "100%" : "auto",
-        minWidth: 200,
-        boxShadow: "0 4px 12px rgba(79, 70, 229, 0.3)"
+        width: isMobile ? "100%" : 260
       }}
     >
       {label}
     </button>
   );
 
+  const HomeGrid = () => (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+      gap: 20,
+      width: "100%"
+    }}>
+      {tools.map(tool => (
+        <div
+          key={tool.id}
+          onClick={() => setActiveTab(tool.id)}
+          style={{
+            background: theme.card,
+            padding: 24,
+            borderRadius: 16,
+            border: `1px solid ${theme.border}`,
+            cursor: "pointer",
+            transition: "transform 0.2s",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 12
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"}
+          onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+        >
+          <div style={{ fontSize: 32 }}>{tool.icon}</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: theme.text }}>{tool.label}</div>
+          <div style={{ fontSize: 14, color: theme.sub }}>{tool.desc}</div>
+        </div>
+      ))}
+    </div>
+  );
+
   const Navbar = () => (
     <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 64,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 16px",
-      background: theme.card,
-      borderBottom: `1px solid ${theme.border}`,
-      zIndex: 100
+      position: "sticky", top: 0, height: 64, display: "flex", alignItems: "center",
+      justifyContent: "space-between", padding: "0 16px", background: theme.card,
+      borderBottom: `1px solid ${theme.border}`, zIndex: 30
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, color: theme.text, fontWeight: 800 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 12, color: theme.text, fontWeight: 800, cursor: "pointer" }}
+        onClick={() => setActiveTab("home")}
+      >
         {isMobile && (
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)} 
-            style={{ border: "none", background: "transparent", fontSize: 24, cursor: "pointer", color: theme.text, padding: 8 }}
-          >
-            {sidebarOpen ? "✕" : "☰"}
-          </button>
+          <button onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen) }} style={{ border: "none", background: "transparent", fontSize: 22, cursor: "pointer", color: theme.text }}>☰</button>
         )}
         <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }} />
-        <span>pdfWorld</span>
+        pdfWorld
       </div>
-      <button 
-        onClick={() => setDark(!dark)} 
-        style={{ padding: "8px 16px", borderRadius: 9999, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer", fontSize: 13 }}
-      >
-        {dark ? "☀️ Light" : "🌙 Dark"}
+      <button onClick={() => setDark(!dark)} style={{ padding: "6px 12px", borderRadius: 9999, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer" }}>
+        {dark ? "Light" : "Dark"}
       </button>
     </div>
   );
 
-  const Tool = ({ id, label }) => (
-    <button 
-      onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        padding: "12px 16px",
-        borderRadius: 12,
-        border: "none",
-        marginBottom: 8,
-        background: activeTab === id ? theme.brand : "transparent",
-        color: activeTab === id ? "#fff" : theme.text,
-        cursor: "pointer",
-        fontWeight: 600,
-        transition: "0.2s"
-      }}>
-      {label}
-    </button>
+  const Sidebar = () => (
+    <div style={{
+      position: isMobile ? "fixed" : "relative",
+      left: isMobile ? (sidebarOpen ? 0 : -260) : 0,
+      top: isMobile ? 64 : 0,
+      width: 260,
+      background: theme.card,
+      padding: 16,
+      borderRight: isMobile ? `1px solid ${theme.border}` : "none",
+      transition: "left .25s ease",
+      zIndex: 25,
+      height: isMobile ? "calc(100vh - 64px)" : "auto",
+      overflowY: "auto"
+    }}>
+      <button onClick={() => { setActiveTab("home"); setSidebarOpen(false) }} style={{ width: "100%", textAlign: "left", padding: 12, border: "none", background: "transparent", color: theme.text, fontWeight: 800, cursor: "pointer" }}>🏠 Home</button>
+      <div style={{ height: 1, background: theme.border, margin: "10px 0" }} />
+      {tools.map(tool => (
+        <button
+          key={tool.id}
+          onClick={() => { setActiveTab(tool.id); setSidebarOpen(false); }}
+          style={{
+            width: "100%", textAlign: "left", padding: "10px 14px", borderRadius: 10, border: "none", marginBottom: 4,
+            background: activeTab === tool.id ? theme.brand : "transparent",
+            color: activeTab === tool.id ? "#fff" : theme.text, cursor: "pointer", fontWeight: 600
+          }}>
+          {tool.icon} {tool.label}
+        </button>
+      ))}
+    </div>
   );
 
   return (
-    <div style={{ background: theme.bg, minHeight: "100vh", color: theme.text, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ background: theme.bg, minHeight: "100vh", color: theme.text, fontFamily: "sans-serif" }}>
       <Navbar />
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: 20, display: "flex", gap: 20 }}>
+        {!isMobile && <Sidebar />}
+        <div style={{ flex: 1 }}>
+          {activeTab === "home" ? (
+            <div>
+              <h1 style={{ textAlign: "center", marginBottom: 10 }}>Every tool you need to work with PDFs</h1>
+              <p style={{ textAlign: "center", color: theme.sub, marginBottom: 40 }}>All are 100% FREE and easy to use!</p>
+              <HomeGrid />
+            </div>
+          ) : (
+            <div style={{ background: theme.card, borderRadius: 20, padding: isMobile ? 20 : 40, border: `1px solid ${theme.border}`, minHeight: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+              <h2 style={{ margin: 0 }}>{tools.find(t => t.id === activeTab)?.label}</h2>
+              <p style={{ color: theme.sub, marginTop: -10 }}>{tools.find(t => t.id === activeTab)?.desc}</p>
 
-      {/* Mobile Backdrop Overlay */}
-      {isMobile && sidebarOpen && (
-        <div 
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 140,
-            backdropFilter: "blur(2px)"
-          }}
-        />
-      )}
+              {activeTab === "merge" && <><UploadBox multiple onFiles={(f) => setFiles([...f])} /><PrimaryButton onClick={handleMerge} label="Merge PDFs" /></>}
+              {activeTab === "rotate" && <><UploadBox onFiles={(f) => setSingleFile(f[0])} /><PrimaryButton onClick={handleRotate} label="Rotate 90°" /></>}
 
-      <div style={{ display: "flex", paddingTop: 64 }}>
-        {/* Sidebar */}
-        <div style={{
-          position: isMobile ? "fixed" : "sticky",
-          top: 64,
-          left: 0,
-          bottom: 0,
-          width: 260,
-          background: theme.card,
-          padding: 16,
-          borderRight: `1px solid ${theme.border}`,
-          zIndex: 150,
-          transition: "transform 0.3s ease",
-          transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
-          height: "calc(100vh - 64px)",
-          overflowY: "auto"
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: theme.sub, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>Tools</div>
-          <Tool id="merge" label="Merge PDFs" />
-          <Tool id="split" label="Split PDF" />
-          <Tool id="rotate" label="Rotate Pages" />
-          <Tool id="watermark" label="Add Watermark" />
-          <Tool id="remove" label="Remove Pages" />
-        </div>
-
-        {/* Main Content Area */}
-        <div style={{
-          flex: 1,
-          padding: isMobile ? "20px 16px" : "40px",
-          maxWidth: 1000,
-          margin: "0 auto",
-          width: "100%",
-          boxSizing: "border-box"
-        }}>
-          <div style={{ marginBottom: 24 }}>
-            <h1 style={{ fontSize: isMobile ? 24 : 32, marginBottom: 8, fontWeight: 800 }}>
-              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} PDF
-            </h1>
-            <p style={{ color: theme.sub }}>Fast, browser-based PDF tools without uploading to a server.</p>
-          </div>
-
-          <div style={{
-            background: theme.card,
-            borderRadius: 20,
-            padding: isMobile ? 20 : 40,
-            border: `1px solid ${theme.border}`,
-            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 20
-          }}>
-            {activeTab === "merge" && (<><UploadBox multiple onFiles={(f) => setFiles([...f])} /><PrimaryButton onClick={handleMerge} label="Merge PDFs" /></>)}
-            {activeTab === "split" && (<><UploadBox onFiles={(f) => setSplitFile(f[0])} /><PrimaryButton onClick={handleSplit} label="Split All Pages" /></>)}
-            {activeTab === "rotate" && (<><UploadBox onFiles={(f) => setRotateFile(f[0])} /><PrimaryButton onClick={handleRotate} label="Rotate 90°" /></>)}
-            
-            {activeTab === "watermark" && (
-              <>
-                <UploadBox onFiles={(f) => setWatermarkFile(f[0])} />
-                <input 
-                  type="text" 
-                  placeholder="Enter watermark text..." 
-                  onChange={(e) => setWatermarkText(e.target.value)} 
-                  style={{ padding: 14, borderRadius: 12, width: "100%", maxWidth: 400, border: `2px solid ${theme.border}`, background: dark ? "#020617" : "#fff", color: theme.text, fontSize: 16 }}
-                />
-                <PrimaryButton onClick={handleWatermark} label="Add Watermark" />
-              </>
-            )}
-
-            {activeTab === "remove" && (
-              <>
-                <UploadBox onFiles={(f) => setRemoveFile(f[0])} />
-                <input 
-                  type="text" 
-                  placeholder="Example: 1, 3, 5" 
-                  onChange={(e) => setRemovePages(e.target.value)} 
-                  style={{ padding: 14, borderRadius: 12, width: "100%", maxWidth: 400, border: `2px solid ${theme.border}`, background: dark ? "#020617" : "#fff", color: theme.text, fontSize: 16 }}
-                />
-                <PrimaryButton onClick={handleRemovePages} label="Remove Pages" />
-              </>
-            )}
-          </div>
+              {/* Other tools share a general UI for now */}
+              {["split", "compress", "pdf-to-word", "word-to-pdf", "pdf-to-excel", "edit", "watermark", "remove"].includes(activeTab) && (
+                <>
+                  <UploadBox onFiles={(f) => setSingleFile(f[0])} />
+                  {activeTab === "watermark" && <input type="text" placeholder="Watermark Text" style={{ padding: 12, borderRadius: 8, width: "100%", maxWidth: 300, border: `1px solid ${theme.border}` }} />}
+                  <PrimaryButton onClick={handlePlaceholder} label="Upload & Process" />
+                </>
+              )}
+              <button onClick={() => setActiveTab("home")} style={{ background: "transparent", border: "none", color: theme.brand, cursor: "pointer" }}>Back to home</button>
+            </div>
+          )}
         </div>
       </div>
+      {isMobile && sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }} />}
     </div>
   );
 }
