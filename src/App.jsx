@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PDFDocument, degrees, rgb, StandardFonts } from "pdf-lib";
 
 export default function App() {
@@ -11,6 +11,15 @@ export default function App() {
   const [removeFile, setRemoveFile] = useState(null);
   const [watermarkText, setWatermarkText] = useState("");
   const [removePages, setRemovePages] = useState("");
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const theme = {
     bg: dark ? "#0b1220" : "#f4f6fb",
@@ -107,7 +116,7 @@ export default function App() {
         style={{
           border: `2px dashed ${theme.border}`,
           borderRadius: 14,
-          padding: 36,
+          padding: isMobile ? 20 : 36,
           textAlign: "center",
           marginBottom: 16,
           background: drag ? "rgba(79,70,229,0.08)" : (dark ? "#020617" : "#fafbff"),
@@ -116,12 +125,8 @@ export default function App() {
         }}
       >
         <div style={{ marginBottom: 8, fontWeight: 600 }}>Drag & Drop PDF here</div>
-        <input
-          type="file"
-          accept="application/pdf"
-          multiple={multiple}
-          onChange={(e) => onFiles(e.target.files)}
-        />
+        <input type="file" accept="application/pdf" multiple={multiple}
+          onChange={(e) => onFiles(e.target.files)} />
       </div>
     );
   };
@@ -130,15 +135,14 @@ export default function App() {
     <button
       onClick={onClick}
       style={{
-        padding: "14px 28px",
+        padding: isMobile ? "12px 20px" : "14px 28px",
         background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
         color: "white",
         border: "none",
         borderRadius: 9999,
         cursor: "pointer",
         fontWeight: 700,
-        boxShadow: "0 12px 28px rgba(79,70,229,0.35)",
-        minWidth: 260
+        width: isMobile ? "100%" : 260
       }}
     >
       {label}
@@ -153,56 +157,58 @@ export default function App() {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "0 24px",
+      padding: "0 16px",
       background: theme.card,
       borderBottom: `1px solid ${theme.border}`,
       zIndex: 10
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, color: theme.text, fontWeight: 800 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }} />
+        {isMobile && (
+          <button onClick={()=>setSidebarOpen(!sidebarOpen)} style={{border:"none",background:"transparent",fontSize:22,cursor:"pointer",color:theme.text}}>☰</button>
+        )}
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }} />
         pdfWorld
       </div>
-      <button
-        onClick={() => setDark(!dark)}
-        style={{
-          padding: "8px 14px",
-          borderRadius: 9999,
-          border: `1px solid ${theme.border}`,
-          background: "transparent",
-          color: theme.text,
-          cursor: "pointer"
-        }}
-      >
-        {dark ? "Light" : "Dark"} Mode
+      <button onClick={()=>setDark(!dark)} style={{padding:"6px 12px",borderRadius:9999,border:`1px solid ${theme.border}`,background:"transparent",color:theme.text}}>
+        {dark?"Light":"Dark"}
       </button>
     </div>
   );
 
   const Tool = ({ id, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        padding: "14px 16px",
-        borderRadius: 12,
-        border: "none",
-        marginBottom: 8,
-        background: activeTab === id ? theme.brand : theme.idle,
-        color: activeTab === id ? "#fff" : theme.text,
-        cursor: "pointer",
-        fontWeight: 600
-      }}
-    >
+    <button onClick={()=>{setActiveTab(id); setSidebarOpen(false);}}
+      style={{width:"100%",textAlign:"left",padding:"12px 14px",borderRadius:12,border:"none",marginBottom:8,
+      background:activeTab===id?theme.brand:theme.idle,color:activeTab===id?"#fff":theme.text,cursor:"pointer",fontWeight:600}}>
       {label}
     </button>
+  );
+
+  const Sidebar = () => (
+    <div style={{
+      position: isMobile ? "fixed" : "relative",
+      left: isMobile ? (sidebarOpen ? 0 : -260) : 0,
+      top: 64,
+      bottom: 0,
+      width: 260,
+      background: theme.card,
+      padding: 16,
+      borderRight: `1px solid ${theme.border}`,
+      transition: "all .3s ease",
+      zIndex: 20
+    }}>
+      <Tool id="merge" label="Merge PDFs" />
+      <Tool id="split" label="Split PDF" />
+      <Tool id="rotate" label="Rotate Pages" />
+      <Tool id="watermark" label="Add Watermark" />
+      <Tool id="remove" label="Remove Pages" />
+    </div>
   );
 
   const Workspace = () => (
     <div style={{
       background: theme.card,
       borderRadius: 20,
-      padding: 28,
+      padding: isMobile?20:28,
       border: `1px solid ${theme.border}`,
       width: "100%",
       minHeight: 420,
@@ -213,95 +219,22 @@ export default function App() {
       gap: 16,
       color: theme.text
     }}>
-      {activeTab === "merge" && (
-        <>
-          <UploadBox multiple onFiles={(f) => setFiles([...f])} />
-          <PrimaryButton onClick={handleMerge} label="Merge & Download" />
-        </>
-      )}
-      {activeTab === "split" && (
-        <>
-          <UploadBox onFiles={(f) => setSplitFile(f[0])} />
-          <PrimaryButton onClick={handleSplit} label="Split & Download" />
-        </>
-      )}
-      {activeTab === "rotate" && (
-        <>
-          <UploadBox onFiles={(f) => setRotateFile(f[0])} />
-          <PrimaryButton onClick={handleRotate} label="Rotate 90° & Download" />
-        </>
-      )}
-      {activeTab === "watermark" && (
-        <>
-          <UploadBox onFiles={(f) => setWatermarkFile(f[0])} />
-          <input
-            type="text"
-            placeholder="Enter watermark text"
-            onChange={(e) => setWatermarkText(e.target.value)}
-            style={{
-              padding: 12,
-              borderRadius: 10,
-              width: "100%",
-              maxWidth: 420,
-              border: `1px solid ${theme.border}`,
-              background: dark ? "#020617" : "#fff",
-              color: theme.text
-            }}
-          />
-          <PrimaryButton onClick={handleWatermark} label="Add Watermark" />
-        </>
-      )}
-      {activeTab === "remove" && (
-        <>
-          <UploadBox onFiles={(f) => setRemoveFile(f[0])} />
-          <input
-            type="text"
-            placeholder="Pages to remove (e.g. 1,3)"
-            onChange={(e) => setRemovePages(e.target.value)}
-            style={{
-              padding: 12,
-              borderRadius: 10,
-              width: "100%",
-              maxWidth: 420,
-              border: `1px solid ${theme.border}`,
-              background: dark ? "#020617" : "#fff",
-              color: theme.text
-            }}
-          />
-          <PrimaryButton onClick={handleRemovePages} label="Remove & Download" />
-        </>
-      )}
+      {activeTab === "merge" && (<><UploadBox multiple onFiles={(f)=>setFiles([...f])}/><PrimaryButton onClick={handleMerge} label="Merge & Download"/></>)}
+      {activeTab === "split" && (<><UploadBox onFiles={(f)=>setSplitFile(f[0])}/><PrimaryButton onClick={handleSplit} label="Split & Download"/></>)}
+      {activeTab === "rotate" && (<><UploadBox onFiles={(f)=>setRotateFile(f[0])}/><PrimaryButton onClick={handleRotate} label="Rotate 90° & Download"/></>)}
+      {activeTab === "watermark" && (<><UploadBox onFiles={(f)=>setWatermarkFile(f[0])}/><input type="text" placeholder="Enter watermark text" onChange={(e)=>setWatermarkText(e.target.value)} style={{padding:12,borderRadius:10,width:"100%",maxWidth:420,border:`1px solid ${theme.border}`,background:dark?"#020617":"#fff",color:theme.text}}/><PrimaryButton onClick={handleWatermark} label="Add Watermark"/></>)}
+      {activeTab === "remove" && (<><UploadBox onFiles={(f)=>setRemoveFile(f[0])}/><input type="text" placeholder="Pages to remove (e.g. 1,3)" onChange={(e)=>setRemovePages(e.target.value)} style={{padding:12,borderRadius:10,width:"100%",maxWidth:420,border:`1px solid ${theme.border}`,background:dark?"#020617":"#fff",color:theme.text}}/><PrimaryButton onClick={handleRemovePages} label="Remove & Download"/></>)}
     </div>
   );
 
   return (
     <div style={{ background: theme.bg, minHeight: "100vh" }}>
       <Navbar />
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "24px auto",
-          padding: "0 20px",
-          display: "grid",
-          gridTemplateColumns: "260px 1fr",
-          gap: 20
-        }}
-      >
-        <div
-          style={{
-            background: theme.card,
-            borderRadius: 20,
-            padding: 16,
-            border: `1px solid ${theme.border}`,
-            height: "fit-content"
-          }}
-        >
-          <Tool id="merge" label="Merge PDFs" />
-          <Tool id="split" label="Split PDF" />
-          <Tool id="rotate" label="Rotate Pages" />
-          <Tool id="watermark" label="Add Watermark" />
-          <Tool id="remove" label="Remove Pages" />
-        </div>
+      <Sidebar />
+      <div style={{
+        marginLeft: isMobile ? 0 : 260,
+        padding: 20
+      }}>
         <Workspace />
       </div>
     </div>
