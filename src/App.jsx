@@ -12,13 +12,20 @@ export default function App() {
   const [watermarkText, setWatermarkText] = useState("");
   const [removePages, setRemovePages] = useState("");
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Handle Window Resize
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Close sidebar automatically if switching to desktop
+      if (!mobile) setSidebarOpen(false);
+    };
+    handleResize(); // Set initial state
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const theme = {
@@ -40,6 +47,7 @@ export default function App() {
     a.click();
   };
 
+  // Logic Handlers (Unchanged)
   const handleMerge = async () => {
     if (files.length < 2) return alert("Upload at least 2 PDFs");
     const mergedPdf = await PDFDocument.create();
@@ -106,6 +114,7 @@ export default function App() {
     downloadFile(newBytes, "updated.pdf");
   };
 
+  // UI Components
   const UploadBox = ({ onFiles, multiple = false }) => {
     const [drag, setDrag] = useState(false);
     return (
@@ -116,17 +125,23 @@ export default function App() {
         style={{
           border: `2px dashed ${theme.border}`,
           borderRadius: 14,
-          padding: isMobile ? 20 : 36,
+          padding: isMobile ? 20 : 40,
           textAlign: "center",
           marginBottom: 16,
           background: drag ? "rgba(79,70,229,0.08)" : (dark ? "#020617" : "#fafbff"),
           width: "100%",
+          boxSizing: "border-box",
           color: theme.sub
         }}
       >
-        <div style={{ marginBottom: 8, fontWeight: 600 }}>Drag & Drop PDF here</div>
-        <input type="file" accept="application/pdf" multiple={multiple}
-          onChange={(e) => onFiles(e.target.files)} />
+        <div style={{ marginBottom: 12, fontWeight: 600 }}>{drag ? "Drop now!" : "Select or Drag PDF"}</div>
+        <input 
+          type="file" 
+          accept="application/pdf" 
+          multiple={multiple}
+          style={{ width: '100%', maxWidth: '250px' }}
+          onChange={(e) => onFiles(e.target.files)} 
+        />
       </div>
     );
   };
@@ -135,14 +150,16 @@ export default function App() {
     <button
       onClick={onClick}
       style={{
-        padding: isMobile ? "12px 20px" : "14px 28px",
+        padding: "14px 28px",
         background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
         color: "white",
         border: "none",
-        borderRadius: 9999,
+        borderRadius: 12,
         cursor: "pointer",
         fontWeight: 700,
-        width: isMobile ? "100%" : 260
+        width: isMobile ? "100%" : "auto",
+        minWidth: 200,
+        boxShadow: "0 4px 12px rgba(79, 70, 229, 0.3)"
       }}
     >
       {label}
@@ -151,8 +168,10 @@ export default function App() {
 
   const Navbar = () => (
     <div style={{
-      position: "sticky",
+      position: "fixed",
       top: 0,
+      left: 0,
+      right: 0,
       height: 64,
       display: "flex",
       alignItems: "center",
@@ -160,82 +179,150 @@ export default function App() {
       padding: "0 16px",
       background: theme.card,
       borderBottom: `1px solid ${theme.border}`,
-      zIndex: 10
+      zIndex: 100
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, color: theme.text, fontWeight: 800 }}>
         {isMobile && (
-          <button onClick={()=>setSidebarOpen(!sidebarOpen)} style={{border:"none",background:"transparent",fontSize:22,cursor:"pointer",color:theme.text}}>☰</button>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            style={{ border: "none", background: "transparent", fontSize: 24, cursor: "pointer", color: theme.text, padding: 8 }}
+          >
+            {sidebarOpen ? "✕" : "☰"}
+          </button>
         )}
         <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }} />
-        pdfWorld
+        <span>pdfWorld</span>
       </div>
-      <button onClick={()=>setDark(!dark)} style={{padding:"6px 12px",borderRadius:9999,border:`1px solid ${theme.border}`,background:"transparent",color:theme.text}}>
-        {dark?"Light":"Dark"}
+      <button 
+        onClick={() => setDark(!dark)} 
+        style={{ padding: "8px 16px", borderRadius: 9999, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer", fontSize: 13 }}
+      >
+        {dark ? "☀️ Light" : "🌙 Dark"}
       </button>
     </div>
   );
 
   const Tool = ({ id, label }) => (
-    <button onClick={()=>{setActiveTab(id); setSidebarOpen(false);}}
-      style={{width:"100%",textAlign:"left",padding:"12px 14px",borderRadius:12,border:"none",marginBottom:8,
-      background:activeTab===id?theme.brand:theme.idle,color:activeTab===id?"#fff":theme.text,cursor:"pointer",fontWeight:600}}>
+    <button 
+      onClick={() => { setActiveTab(id); setSidebarOpen(false); }}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        padding: "12px 16px",
+        borderRadius: 12,
+        border: "none",
+        marginBottom: 8,
+        background: activeTab === id ? theme.brand : "transparent",
+        color: activeTab === id ? "#fff" : theme.text,
+        cursor: "pointer",
+        fontWeight: 600,
+        transition: "0.2s"
+      }}>
       {label}
     </button>
   );
 
-  const Sidebar = () => (
-    <div style={{
-      position: isMobile ? "fixed" : "relative",
-      left: isMobile ? (sidebarOpen ? 0 : -260) : 0,
-      top: 64,
-      bottom: 0,
-      width: 260,
-      background: theme.card,
-      padding: 16,
-      borderRight: `1px solid ${theme.border}`,
-      transition: "all .3s ease",
-      zIndex: 20
-    }}>
-      <Tool id="merge" label="Merge PDFs" />
-      <Tool id="split" label="Split PDF" />
-      <Tool id="rotate" label="Rotate Pages" />
-      <Tool id="watermark" label="Add Watermark" />
-      <Tool id="remove" label="Remove Pages" />
-    </div>
-  );
-
-  const Workspace = () => (
-    <div style={{
-      background: theme.card,
-      borderRadius: 20,
-      padding: isMobile?20:28,
-      border: `1px solid ${theme.border}`,
-      width: "100%",
-      minHeight: 420,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 16,
-      color: theme.text
-    }}>
-      {activeTab === "merge" && (<><UploadBox multiple onFiles={(f)=>setFiles([...f])}/><PrimaryButton onClick={handleMerge} label="Merge & Download"/></>)}
-      {activeTab === "split" && (<><UploadBox onFiles={(f)=>setSplitFile(f[0])}/><PrimaryButton onClick={handleSplit} label="Split & Download"/></>)}
-      {activeTab === "rotate" && (<><UploadBox onFiles={(f)=>setRotateFile(f[0])}/><PrimaryButton onClick={handleRotate} label="Rotate 90° & Download"/></>)}
-      {activeTab === "watermark" && (<><UploadBox onFiles={(f)=>setWatermarkFile(f[0])}/><input type="text" placeholder="Enter watermark text" onChange={(e)=>setWatermarkText(e.target.value)} style={{padding:12,borderRadius:10,width:"100%",maxWidth:420,border:`1px solid ${theme.border}`,background:dark?"#020617":"#fff",color:theme.text}}/><PrimaryButton onClick={handleWatermark} label="Add Watermark"/></>)}
-      {activeTab === "remove" && (<><UploadBox onFiles={(f)=>setRemoveFile(f[0])}/><input type="text" placeholder="Pages to remove (e.g. 1,3)" onChange={(e)=>setRemovePages(e.target.value)} style={{padding:12,borderRadius:10,width:"100%",maxWidth:420,border:`1px solid ${theme.border}`,background:dark?"#020617":"#fff",color:theme.text}}/><PrimaryButton onClick={handleRemovePages} label="Remove & Download"/></>)}
-    </div>
-  );
-
   return (
-    <div style={{ background: theme.bg, minHeight: "100vh" }}>
+    <div style={{ background: theme.bg, minHeight: "100vh", color: theme.text, fontFamily: 'system-ui, sans-serif' }}>
       <Navbar />
-      <Sidebar />
-      <div style={{
-        marginLeft: isMobile ? 0 : 260,
-        padding: 20
-      }}>
-        <Workspace />
+
+      {/* Mobile Backdrop Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            zIndex: 140,
+            backdropFilter: "blur(2px)"
+          }}
+        />
+      )}
+
+      <div style={{ display: "flex", paddingTop: 64 }}>
+        {/* Sidebar */}
+        <div style={{
+          position: isMobile ? "fixed" : "sticky",
+          top: 64,
+          left: 0,
+          bottom: 0,
+          width: 260,
+          background: theme.card,
+          padding: 16,
+          borderRight: `1px solid ${theme.border}`,
+          zIndex: 150,
+          transition: "transform 0.3s ease",
+          transform: isMobile && !sidebarOpen ? "translateX(-100%)" : "translateX(0)",
+          height: "calc(100vh - 64px)",
+          overflowY: "auto"
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: theme.sub, marginBottom: 16, textTransform: "uppercase", letterSpacing: 1 }}>Tools</div>
+          <Tool id="merge" label="Merge PDFs" />
+          <Tool id="split" label="Split PDF" />
+          <Tool id="rotate" label="Rotate Pages" />
+          <Tool id="watermark" label="Add Watermark" />
+          <Tool id="remove" label="Remove Pages" />
+        </div>
+
+        {/* Main Content Area */}
+        <div style={{
+          flex: 1,
+          padding: isMobile ? "20px 16px" : "40px",
+          maxWidth: 1000,
+          margin: "0 auto",
+          width: "100%",
+          boxSizing: "border-box"
+        }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ fontSize: isMobile ? 24 : 32, marginBottom: 8, fontWeight: 800 }}>
+              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} PDF
+            </h1>
+            <p style={{ color: theme.sub }}>Fast, browser-based PDF tools without uploading to a server.</p>
+          </div>
+
+          <div style={{
+            background: theme.card,
+            borderRadius: 20,
+            padding: isMobile ? 20 : 40,
+            border: `1px solid ${theme.border}`,
+            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 20
+          }}>
+            {activeTab === "merge" && (<><UploadBox multiple onFiles={(f) => setFiles([...f])} /><PrimaryButton onClick={handleMerge} label="Merge PDFs" /></>)}
+            {activeTab === "split" && (<><UploadBox onFiles={(f) => setSplitFile(f[0])} /><PrimaryButton onClick={handleSplit} label="Split All Pages" /></>)}
+            {activeTab === "rotate" && (<><UploadBox onFiles={(f) => setRotateFile(f[0])} /><PrimaryButton onClick={handleRotate} label="Rotate 90°" /></>)}
+            
+            {activeTab === "watermark" && (
+              <>
+                <UploadBox onFiles={(f) => setWatermarkFile(f[0])} />
+                <input 
+                  type="text" 
+                  placeholder="Enter watermark text..." 
+                  onChange={(e) => setWatermarkText(e.target.value)} 
+                  style={{ padding: 14, borderRadius: 12, width: "100%", maxWidth: 400, border: `2px solid ${theme.border}`, background: dark ? "#020617" : "#fff", color: theme.text, fontSize: 16 }}
+                />
+                <PrimaryButton onClick={handleWatermark} label="Add Watermark" />
+              </>
+            )}
+
+            {activeTab === "remove" && (
+              <>
+                <UploadBox onFiles={(f) => setRemoveFile(f[0])} />
+                <input 
+                  type="text" 
+                  placeholder="Example: 1, 3, 5" 
+                  onChange={(e) => setRemovePages(e.target.value)} 
+                  style={{ padding: 14, borderRadius: 12, width: "100%", maxWidth: 400, border: `2px solid ${theme.border}`, background: dark ? "#020617" : "#fff", color: theme.text, fontSize: 16 }}
+                />
+                <PrimaryButton onClick={handleRemovePages} label="Remove Pages" />
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
