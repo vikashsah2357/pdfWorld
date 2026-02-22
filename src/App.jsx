@@ -72,11 +72,42 @@ export default function App() {
     downloadFile(await pdf.save(), "rotated.pdf");
   };
 
-  // Note: PDF to Word/Excel usually requires server-side processing. 
-  // Here we provide the UI for the workflow.
   const handlePlaceholder = () => alert("Conversion tools require a backend server. UI is ready!");
 
   // --- COMPONENTS ---
+
+  // NEW: Breadcrumbs Component for Mobile
+  const Breadcrumbs = () => {
+    if (!isMobile) return null;
+    const currentTool = tools.find(t => t.id === activeTab);
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 14,
+        marginBottom: 20,
+        color: theme.sub,
+        padding: "0 4px"
+      }}>
+        <span
+          onClick={() => setActiveTab("home")}
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+        >
+          🏠 Home
+        </span>
+        {activeTab !== "home" && (
+          <>
+            <span style={{ opacity: 0.5 }}>/</span>
+            <span style={{ color: theme.text, fontWeight: 600 }}>
+              {currentTool?.label}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const UploadBox = ({ onFiles, multiple = false }) => {
     const [drag, setDrag] = useState(false);
     return (
@@ -92,6 +123,7 @@ export default function App() {
           marginBottom: 16,
           background: drag ? "rgba(79,70,229,0.08)" : (dark ? "#020617" : "#fafbff"),
           width: "100%",
+          boxSizing: "border-box",
           color: theme.sub
         }}
       >
@@ -157,7 +189,7 @@ export default function App() {
     <div style={{
       position: "sticky", top: 0, height: 64, display: "flex", alignItems: "center",
       justifyContent: "space-between", padding: "0 16px", background: theme.card,
-      borderBottom: `1px solid ${theme.border}`, zIndex: 30
+      borderBottom: `1px solid ${theme.border}`, zIndex: 100
     }}>
       <div
         style={{ display: "flex", alignItems: "center", gap: 12, color: theme.text, fontWeight: 800, cursor: "pointer" }}
@@ -170,7 +202,7 @@ export default function App() {
         pdfWorld
       </div>
       <button onClick={() => setDark(!dark)} style={{ padding: "6px 12px", borderRadius: 9999, border: `1px solid ${theme.border}`, background: "transparent", color: theme.text, cursor: "pointer" }}>
-        {dark ? "Light" : "Dark"}
+        {dark ? "☀️" : "🌙"}
       </button>
     </div>
   );
@@ -185,9 +217,10 @@ export default function App() {
       padding: 16,
       borderRight: isMobile ? `1px solid ${theme.border}` : "none",
       transition: "left .25s ease",
-      zIndex: 25,
+      zIndex: 150,
       height: isMobile ? "calc(100vh - 64px)" : "auto",
-      overflowY: "auto"
+      overflowY: "auto",
+      boxSizing: "border-box"
     }}>
       <button onClick={() => { setActiveTab("home"); setSidebarOpen(false) }} style={{ width: "100%", textAlign: "left", padding: 12, border: "none", background: "transparent", color: theme.text, fontWeight: 800, cursor: "pointer" }}>🏠 Home</button>
       <div style={{ height: 1, background: theme.border, margin: "10px 0" }} />
@@ -211,35 +244,53 @@ export default function App() {
       <Navbar />
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: 20, display: "flex", gap: 20 }}>
         {!isMobile && <Sidebar />}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, width: "100%" }}>
+
+          {/* MOBILE BREADCRUMBS VIEW */}
+          <Breadcrumbs />
+
           {activeTab === "home" ? (
             <div>
-              <h1 style={{ textAlign: "center", marginBottom: 10 }}>Every tool you need to work with PDFs</h1>
+              <h1 style={{ textAlign: "center", marginBottom: 10, fontSize: isMobile ? "24px" : "32px" }}>Every tool you need to work with PDFs</h1>
               <p style={{ textAlign: "center", color: theme.sub, marginBottom: 40 }}>All are 100% FREE and easy to use!</p>
               <HomeGrid />
             </div>
           ) : (
-            <div style={{ background: theme.card, borderRadius: 20, padding: isMobile ? 20 : 40, border: `1px solid ${theme.border}`, minHeight: 400, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
-              <h2 style={{ margin: 0 }}>{tools.find(t => t.id === activeTab)?.label}</h2>
-              <p style={{ color: theme.sub, marginTop: -10 }}>{tools.find(t => t.id === activeTab)?.desc}</p>
+            <div style={{
+              background: theme.card,
+              borderRadius: 20,
+              padding: isMobile ? 20 : 40,
+              border: `1px solid ${theme.border}`,
+              minHeight: 400,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 20,
+              width: "100%",
+              boxSizing: "border-box"
+            }}>
+              <h2 style={{ margin: 0, textAlign: "center" }}>{tools.find(t => t.id === activeTab)?.label}</h2>
+              <p style={{ color: theme.sub, marginTop: -10, textAlign: "center" }}>{tools.find(t => t.id === activeTab)?.desc}</p>
 
               {activeTab === "merge" && <><UploadBox multiple onFiles={(f) => setFiles([...f])} /><PrimaryButton onClick={handleMerge} label="Merge PDFs" /></>}
               {activeTab === "rotate" && <><UploadBox onFiles={(f) => setSingleFile(f[0])} /><PrimaryButton onClick={handleRotate} label="Rotate 90°" /></>}
 
-              {/* Other tools share a general UI for now */}
+              {/* Other tools */}
               {["split", "compress", "pdf-to-word", "word-to-pdf", "pdf-to-excel", "edit", "watermark", "remove"].includes(activeTab) && (
                 <>
                   <UploadBox onFiles={(f) => setSingleFile(f[0])} />
-                  {activeTab === "watermark" && <input type="text" placeholder="Watermark Text" style={{ padding: 12, borderRadius: 8, width: "100%", maxWidth: 300, border: `1px solid ${theme.border}` }} />}
+                  {activeTab === "watermark" && <input type="text" placeholder="Watermark Text" style={{ padding: 12, borderRadius: 8, width: "100%", maxWidth: 300, border: `1px solid ${theme.border}`, background: dark ? "#020617" : "#fff", color: theme.text }} />}
                   <PrimaryButton onClick={handlePlaceholder} label="Upload & Process" />
                 </>
               )}
-              <button onClick={() => setActiveTab("home")} style={{ background: "transparent", border: "none", color: theme.brand, cursor: "pointer" }}>Back to home</button>
+              <button onClick={() => setActiveTab("home")} style={{ background: "transparent", border: "none", color: theme.brand, cursor: "pointer", fontWeight: 600 }}>Back to home</button>
             </div>
           )}
         </div>
       </div>
-      {isMobile && sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 20 }} />}
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 120 }} />}
     </div>
   );
 }
